@@ -67,7 +67,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlCount {
-    private String version = "0.0.17";
+    private String version = "0.0.1";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -107,7 +107,7 @@ public class CqlCount {
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
 	usage.append("  -numSplits <numsplits>         Number of total splits\n");
-	usage.append("  -numFutures <numfutures>         Number of futures\n");
+	usage.append("  -numFutures <numfutures>       Number of futures\n");
 	return usage.toString();
     }
     
