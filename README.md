@@ -10,7 +10,7 @@ of timeouts.
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-count/releases/download/v0.0.11/cassandra-count
+https://github.com/brianmhess/cassandra-count/releases/download/v0.0.1/cassandra-count
 
 Get it with wget:
 ```
