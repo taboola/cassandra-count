@@ -10,11 +10,21 @@ of timeouts.
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-count/releases/download/v0.0.2/cassandra-count
+https://github.com/brianmhess/cassandra-count/releases/download/v0.0.3/cassandra-count
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.2/cassandra-count
+wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.3/cassandra-count
+```
+
+You can change the permissions on that file to executable and execute it
+directly.  It is also a proper jar file so you can also run via
+```
+java -jar cassandra-count
+```
+And add whatever extra arguments you want.  For example:
+```
+java -jar cassandra-count -Xmx1G
 ```
 
 ### Building
@@ -24,7 +34,7 @@ gradle buildit
 ```
 
 All of the dependencies are included (namely, the Java driver - currently
-version 2.1.4).  The output will be the cassandra-loader executable
+version 3.0.0).  The output will be the cassandra-loader executable
 in the build directory.  There will also be an jar with all of the
 dependencies included in the build/libs/cassandra-count-uber-<version>.jar
 
@@ -36,7 +46,7 @@ jar xf cassandra-count README.md
 ```
 
 ##Usage
-version: 0.0.2
+version: 0.0.3
 Usage: -host <ipaddress> -keyspace <ks> -table <tableName> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options

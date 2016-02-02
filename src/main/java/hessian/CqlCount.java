@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.HashSet;
 import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
 import java.io.PrintStream;
@@ -67,7 +68,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlCount {
-    private String version = "0.0.2";
+    private String version = "0.0.3";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -79,8 +80,8 @@ public class CqlCount {
     private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
     private Cluster cluster = null;
     private Session session = null;
-    private String maxToken = "-9223372036854775808";
-    private String minToken = "9223372036854775807";
+    private String minToken = "-9223372036854775808";
+    private String maxToken = "9223372036854775807";
     private String beginTokenString = null;
     private String endTokenString = null;
     private int numSplits = 5;
@@ -330,7 +331,19 @@ public class CqlCount {
 	    
 	}
 	else {
-	    Set<TokenRange> ranges = cluster.getMetadata().getTokenRanges();
+	    Set<TokenRange> inranges = m.getTokenRanges();
+	    Set<TokenRange> ranges = new HashSet<TokenRange>();
+	    for (TokenRange tr : inranges) {
+		Token start = tr.getStart();
+		Token end = tr.getEnd();
+		if (0 < start.compareTo(end)) {
+		    ranges.add(m.newTokenRange(start, m.newToken(maxToken)));
+		    ranges.add(m.newTokenRange(m.newToken(minToken), end));
+		}
+		else {
+		    ranges.add(tr);
+		}
+	    }
 	    int numRanges = ranges.size();
 	    int numSplitsPerRange = numSplits / numRanges;
 	    if (numSplitsPerRange < 1)
