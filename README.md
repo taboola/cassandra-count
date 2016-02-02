@@ -46,6 +46,7 @@ jar xf cassandra-count README.md
 ```
 
 ##Usage
+```
 version: 0.0.3
 Usage: -host <ipaddress> -keyspace <ks> -table <tableName> [OPTIONS]
 OPTIONS:
@@ -62,6 +63,7 @@ OPTIONS:
   -endToken <tokenString>        End token [none]
   -numSplits <numsplits>         Number of total splits
   -numFutures <numfutures>       Number of futures
+```
 
 ##Options:
  Switch           | Option             | Default                    | Description
