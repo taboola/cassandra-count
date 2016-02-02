@@ -10,11 +10,11 @@ of timeouts.
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-count/releases/download/v0.0.1/cassandra-count
+https://github.com/brianmhess/cassandra-count/releases/download/v0.0.2/cassandra-count
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.1/cassandra-count
+wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.2/cassandra-count
 ```
 
 ### Building
@@ -36,7 +36,7 @@ jar xf cassandra-count README.md
 ```
 
 ##Usage
-version: 0.0.1
+version: 0.0.2
 Usage: -host <ipaddress> -keyspace <ks> -table <tableName> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options

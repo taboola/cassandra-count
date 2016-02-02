@@ -67,7 +67,7 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 
 
 public class CqlCount {
-    private String version = "0.0.1";
+    private String version = "0.0.2";
     private String host = null;
     private int port = 9042;
     private String username = null;
