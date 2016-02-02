@@ -361,7 +361,7 @@ public class CqlCount {
 	    sb.append(",").append(partkeys.get(i).getName());
 	sb.append(") <= ?");
 
-	return session.prepare(sb.toString());
+	return session.prepare(sb.toString()).setConsistencyLevel(consistencyLevel);
     }
 
     public boolean run(String[] args) 

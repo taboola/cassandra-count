@@ -67,7 +67,7 @@ OPTIONS:
  `-ssl-truststore-pwd`  | Truststore Password | none                | Password to SSL truststore
  `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
  `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
- '-consistencyLevel | Consistency Level | ONE                       | CQL Consistency Level
+ '-consistencyLevel | Consistency Level | LOCAL_ONE                 | CQL Consistency Level
  `-numSplits`    | Number of Splits  | Number of Token Ranges       | Number of splits/queries to create
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
 
