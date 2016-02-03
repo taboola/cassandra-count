@@ -6,15 +6,21 @@ By splitting the token range using the numSplits parameter, you can
 reduce the amount each query is counting and reduce the probability
 of timeouts.
 
+It is true the Spark is well-suited to this operation, however the
+goal of this program is to be a simple utility that does not require
+Spark.  This is useful for simple debugging of loading data (and other
+data quality tasks).  Spark provides much (MUCH) more than this utility
+is addressing - I highly recommend Spark+Cassandra.
+
 ## Getting it
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-count/releases/download/v0.0.3/cassandra-count
+https://github.com/brianmhess/cassandra-count/releases/download/v0.0.4/cassandra-count
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.3/cassandra-count
+wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.4/cassandra-count
 ```
 
 You can change the permissions on that file to executable and execute it
@@ -46,7 +52,8 @@ jar xf cassandra-count README.md
 ```
 
 ##Usage
-version: 0.0.3
+```
+version: 0.0.4
 Usage: -host <ipaddress> -keyspace <ks> -table <tableName> [OPTIONS]
 OPTIONS:
   -configFile <filename>         File with configuration options
@@ -60,8 +67,11 @@ OPTIONS:
   -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
   -beginToken <tokenString>      Begin token [none]
   -endToken <tokenString>        End token [none]
-  -numSplits <numsplits>         Number of total splits
   -numFutures <numfutures>       Number of futures
+  -numSplits <numsplits>         Number of total splits
+  -splitSize <splitSize>         Split size in MBs
+  -debug <0|1|2>                 Print debug messages
+```
 
 ##Options:
  Switch           | Option             | Default                    | Description
@@ -80,6 +90,8 @@ OPTIONS:
  '-consistencyLevel | Consistency Level | LOCAL_ONE                 | CQL Consistency Level
  `-numSplits`    | Number of Splits  | Number of Token Ranges       | Number of splits/queries to create
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
+ `-splitSize`     | Size of Split in MB  | 16                       | Split size in MB
+ `-debug`    | Debug mode  | 0                       | Debug printing verbosity (0=none, 1=some, 2=verbose)
 
 ##Examples
-```./cassandra-count -host 127.0.0.1 -keyspace test -table itest -numSplits 10```
+```./cassandra-count -host 127.0.0.1 -keyspace test -table itest```

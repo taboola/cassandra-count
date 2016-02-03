@@ -65,10 +65,12 @@ import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-
+import com.datastax.driver.core.exceptions.ReadTimeoutException;
+import com.datastax.driver.core.exceptions.OperationTimedOutException;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
 public class CqlCount {
-    private String version = "0.0.3";
+    private String version = "0.0.4";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -84,10 +86,12 @@ public class CqlCount {
     private String maxToken = "9223372036854775807";
     private String beginTokenString = null;
     private String endTokenString = null;
-    private int numSplits = 5;
+    private int numSplits = -1;
     private int numFutures = 1000;
     private String keyspaceName = null;
     private String tableName = null;
+    private long splitSize = 16*1024*1024;
+    private int debug = 0;
 
     private List<Token> beginTokens;
     private List<Token> endTokens;
@@ -107,8 +111,10 @@ public class CqlCount {
         usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
-	usage.append("  -numSplits <numsplits>         Number of total splits\n");
 	usage.append("  -numFutures <numfutures>       Number of futures\n");
+	usage.append("  -numSplits <numsplits>         Number of total splits\n");
+	usage.append("  -splitSize <splitSize>         Split size in MBs\n");
+	usage.append("  -debug <0|1|2>                 Print debug messages\n");
 	return usage.toString();
     }
     
@@ -160,12 +166,21 @@ public class CqlCount {
 	    System.err.println("If you supply the endToken then you need to specify the beginToken");
 	    return false;
 	}
-	if (numSplits < 1) {
-	    System.err.println("numSplits must be positive");
-	    return false;
-	}
 	if (numFutures < 1) {
 	    System.err.println("numFutures must be positive");
+	    return false;
+	}
+	//if (numSplits < 1) {
+	//  System.err.println("numSplits must be positive");
+	//  return false;
+	//}
+	if (splitSize < 0) {
+	    System.err.println("splitSize must be positive");
+	    return false;
+	}
+
+	if ((2 < debug) || (0 > debug)) {
+	    System.err.println("Debug options are 0, 1, 2 (in increasing verbosity)");
 	    return false;
 	}
 
@@ -242,8 +257,10 @@ public class CqlCount {
         if (null != (tkey = amap.remove("-consistencyLevel"))) consistencyLevel = ConsistencyLevel.valueOf(tkey);
 	if (null != (tkey = amap.remove("-numFutures")))    numFutures = Integer.parseInt(tkey);
 	if (null != (tkey = amap.remove("-numSplits")))    numSplits = Integer.parseInt(tkey);
+	if (null != (tkey = amap.remove("-splitSize")))    splitSize = Long.parseLong(tkey) * 1024 * 1024;
 	if (null != (tkey = amap.remove("-beginToken")))    beginTokenString = tkey;
 	if (null != (tkey = amap.remove("-endToken")))      endTokenString = tkey;
+	if (null != (tkey = amap.remove("-debug")))      debug = Integer.parseInt(tkey);
 	
 	if (!amap.isEmpty()) {
 	    for (String k : amap.keySet())
@@ -280,6 +297,11 @@ public class CqlCount {
         return JdkSSLOptions.builder().withSSLContext(sslContext).build(); //SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
     }
 
+    private void debugPrint(String str, boolean crlf, int level) {
+	if (debug >= level)
+	    System.err.print(str + (crlf ? "\n" : ""));
+    }
+    
     private void setup()
 	throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException,
                CertificateException, UnrecoverableKeyException  {
@@ -333,28 +355,73 @@ public class CqlCount {
 	else {
 	    Set<TokenRange> inranges = m.getTokenRanges();
 	    Set<TokenRange> ranges = new HashSet<TokenRange>();
-	    for (TokenRange tr : inranges) {
-		Token start = tr.getStart();
-		Token end = tr.getEnd();
-		if (0 < start.compareTo(end)) {
-		    ranges.add(m.newTokenRange(start, m.newToken(maxToken)));
-		    ranges.add(m.newTokenRange(m.newToken(minToken), end));
+	    if (numSplits > 0) {
+		debugPrint("Splitting into " + numSplits + " splits", true, 2);
+		for (TokenRange tr : inranges) {
+		    Token start = tr.getStart();
+		    Token end = tr.getEnd();
+		    if (0 < start.compareTo(end)) {
+			ranges.add(m.newTokenRange(start, m.newToken(maxToken)));
+			ranges.add(m.newTokenRange(m.newToken(minToken), end));
+		    }
+		    else {
+			ranges.add(tr);
+		    }
 		}
-		else {
-		    ranges.add(tr);
-		}
-	    }
-	    int numRanges = ranges.size();
-	    int numSplitsPerRange = numSplits / numRanges;
-	    if (numSplitsPerRange < 1)
-		numSplitsPerRange = 1;
+		int numRanges = ranges.size();
+		int numSplitsPerRange = numSplits / numRanges;
+		debugPrint("Splitting " + numRanges + " ranges each into " + numSplitsPerRange + " splits", true, 2);
+		if (numSplitsPerRange < 1)
+		    numSplitsPerRange = 1;
 
-	    for (TokenRange r : ranges) {
-		List<TokenRange> splits = r.splitEvenly(numSplitsPerRange);
-		for (TokenRange s : splits) {
-		    beginTokens.add(s.getStart());
-		    endTokens.add(s.getEnd());
+		for (TokenRange r : ranges) {
+		    List<TokenRange> splits = r.splitEvenly(numSplitsPerRange);
+		    for (TokenRange s : splits) {
+			beginTokens.add(s.getStart());
+			endTokens.add(s.getEnd());
+		    }
 		}
+		debugPrint("Total ranges: " + beginTokens.size(), true, 1);
+	    }
+	    else {
+		List<Row> rows = session.execute("SELECT range_start, range_end, mean_partition_size, partitions_count FROM system.size_estimates WHERE keyspace_name='" + keyspaceName + "' AND table_name = '" + tableName + "'").all();
+		Long maxToken = Long.MAX_VALUE;
+		Long minToken = Long.MIN_VALUE;
+		debugPrint("Splitting by size: " + splitSize, true, 2);
+		for (Row r : rows) {
+		    long stlong;
+		    long enlong;
+		    if (rows.size() == 1) {
+			stlong = minToken;
+			enlong = maxToken;
+		    }
+		    else {
+			String st = r.getString("range_start");
+			String en = r.getString("range_end");
+			stlong = Long.parseLong(st);
+			enlong = Long.parseLong(en);
+		    }
+		    long mps = r.getLong("mean_partition_size");
+		    long pc = r.getLong("partitions_count");
+		    long nsplit = (long)(((double)mps * (double)pc) / (double)splitSize);
+		    if (nsplit < 1)
+			nsplit = 1;
+		    debugPrint("Splitting (" + stlong + "," + enlong + "] into " + nsplit + " splits", true, 2);
+		    long delta = (enlong / nsplit) - (stlong / nsplit);
+		    for (long i = 0; i < nsplit; i++) {
+			beginTokens.add(m.newToken(String.valueOf(stlong + (i * delta))));
+			debugPrint("  (" + (stlong + (i * delta)), false, 2);
+			if (i < nsplit -1) {
+			    endTokens.add(m.newToken(String.valueOf(stlong + ((i+1) * delta))));
+			    debugPrint(", " + (stlong + ((i+1) * delta)) + "]", true, 2);
+			}
+			else {
+			    endTokens.add(m.newToken(String.valueOf(enlong)));
+			    debugPrint(", " + enlong + "]", true, 2);
+			}
+		    }
+		}
+		debugPrint("Total ranges: " + beginTokens.size(), true, 1);
 	    }
 	}
     }
@@ -373,6 +440,8 @@ public class CqlCount {
 	for (int i = 1; i < partkeys.size(); i++)
 	    sb.append(",").append(partkeys.get(i).getName());
 	sb.append(") <= ?");
+	
+	debugPrint("Query: " + sb.toString(), true, 2);
 
 	return session.prepare(sb.toString()).setConsistencyLevel(consistencyLevel);
     }
@@ -398,10 +467,12 @@ public class CqlCount {
 	List<ResultSetFuture> flist = new ArrayList<ResultSetFuture>();
 	int fsize = 0;
 	long count = 0;
+	Row r;
 
 	// Loop over splits
 	for (int i = 0; i < beginTokens.size(); i++) {
 	//   Bind Split
+	    debugPrint("Executing: " + beginTokens.get(i) + "  " + endTokens.get(i), true, 2);
 	    BoundStatement bs = ps.bind(beginTokens.get(i), 
 					endTokens.get(i));
 	//   Execute query
@@ -410,7 +481,14 @@ public class CqlCount {
 	    fsize++;
 	    if (fsize >= numFutures) {
 		for (int j = 0; j < flist.size(); j++) {
-		    Row r = flist.get(j).getUninterruptibly().one();
+		    try {
+			r = flist.get(j).getUninterruptibly().one();
+		    }
+		    catch (NoHostAvailableException rte) {
+			System.err.println("An OperationTimedOutException occurred. Try increasing -numSplits or reducing -splitSize");
+			cleanup();
+			return false;
+		    }
 		    count += r.getLong(0);
 		}
 		flist.clear();
@@ -419,15 +497,23 @@ public class CqlCount {
 	}
 	if (fsize > 0) {
 	    for (int j = 0; j < flist.size(); j++) {
-		Row r = flist.get(j).getUninterruptibly().one();
+		try {
+		    r = flist.get(j).getUninterruptibly().one();
+		}
+		catch (NoHostAvailableException rte) {
+		    System.err.println("An OperationTimedOutException occurred. Try increasing -numSplits or reducing -splitSize");		    
+		    cleanup();
+		    return false;
+		}
 		count += r.getLong(0);
 	    }
 	    flist.clear();
 	    fsize = 0;
 	} 
 
-	System.out.println("Count: " + count);
+	System.out.println(keyspaceName + "." + tableName + ": " + count);
 
+	//cleanup();
 	return true;
     }
 
