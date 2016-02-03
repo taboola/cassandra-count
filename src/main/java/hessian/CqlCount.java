@@ -455,6 +455,7 @@ public class CqlCount {
 	    System.err.println(usage());
 	    return false;
 	}
+	debugPrint("Version: " + version, true, 2);
 
 	// Setup
 	setup();
