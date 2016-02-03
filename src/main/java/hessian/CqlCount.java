@@ -70,7 +70,7 @@ import com.datastax.driver.core.exceptions.OperationTimedOutException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
 public class CqlCount {
-    private String version = "0.0.4";
+    private String version = "0.0.5";
     private String host = null;
     private int port = 9042;
     private String username = null;
@@ -87,10 +87,10 @@ public class CqlCount {
     private String beginTokenString = null;
     private String endTokenString = null;
     private int numSplits = -1;
-    private int numFutures = 1000;
+    private int numFutures = 100;
     private String keyspaceName = null;
     private String tableName = null;
-    private long splitSize = 16*1024*1024;
+    private long splitSize = 2*1024*1024;
     private int debug = 0;
 
     private List<Token> beginTokens;
@@ -100,7 +100,7 @@ public class CqlCount {
 	StringBuilder usage = new StringBuilder("version: ").append(version).append("\n");
 	usage.append("Usage: -host <ipaddress> -keyspace <ks> -table <tableName> [OPTIONS]\n");
 	usage.append("OPTIONS:\n");
-        usage.append("  -configFile <filename>         File with configuration options\n");
+        usage.append("  -configFile <filename>         File with configuration options [none]\n");
 	usage.append("  -port <portNumber>             CQL Port Number [9042]\n");
 	usage.append("  -user <username>               Cassandra username [none]\n");
 	usage.append("  -pw <password>                 Password for user [none]\n");
@@ -111,10 +111,10 @@ public class CqlCount {
         usage.append("  -consistencyLevel <CL>         Consistency level [LOCAL_ONE]\n");
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
-	usage.append("  -numFutures <numfutures>       Number of futures\n");
-	usage.append("  -numSplits <numsplits>         Number of total splits\n");
-	usage.append("  -splitSize <splitSize>         Split size in MBs\n");
-	usage.append("  -debug <0|1|2>                 Print debug messages\n");
+	usage.append("  -numFutures <numfutures>       Number of futures [100]\n");
+	usage.append("  -numSplits <numsplits>         Number of total splits [none]\n");
+	usage.append("  -splitSize <splitSize>         Split size in MBs [2]\n");
+	usage.append("  -debug <0|1|2>                 Print debug messages [0]\n");
 	return usage.toString();
     }
     
