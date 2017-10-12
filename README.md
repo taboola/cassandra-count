@@ -53,10 +53,10 @@ jar xf cassandra-count README.md
 
 ##Usage
 ```
-version: 0.0.5
+version: 0.0.6
 Usage: -host <ipaddress> -keyspace <ks> -table <tableName> [OPTIONS]
 OPTIONS:
-  -configFile <filename>         File with configuration options
+  -configFile <filename>         File with configuration options [none]
   -port <portNumber>             CQL Port Number [9042]
   -user <username>               Cassandra username [none]
   -pw <password>                 Password for user [none]
@@ -67,10 +67,10 @@ OPTIONS:
   -consistencyLevel <CL>         Consistency level [LOCAL_ONE]
   -beginToken <tokenString>      Begin token [none]
   -endToken <tokenString>        End token [none]
-  -numFutures <numfutures>       Number of futures
-  -numSplits <numsplits>         Number of total splits
-  -splitSize <splitSize>         Split size in MBs
-  -debug <0|1|2>                 Print debug messages
+  -numFutures <numfutures>       Number of futures [100]
+  -numSplits <numsplits>         Number of total splits (0 for <number of tokens>, -1 for size-related generated splits) [number of tokens]
+  -splitSize <splitSize>         Split size in MBs [2]
+  -debug <0|1|2>                 Print debug messages [0]
 ```
 
 ##Options:
@@ -88,7 +88,7 @@ OPTIONS:
  `-ssl-keystore-path`   | Keystore Path       | none                | Path to SSL keystore
  `-ssl-keystore-path`   | Keystore Password   | none                | Password to SSL keystore
  '-consistencyLevel | Consistency Level | LOCAL_ONE                 | CQL Consistency Level
- `-numSplits`    | Number of Splits  | Number of Token Ranges       | Number of splits/queries to create
+ `-numSplits`    | Number of Splits  | Number of Token Ranges       | Number of splits/queries to create 
  `-numFutures`    | Number of Futures  | 1000                       | Number of Java driver futures in flight.
  `-splitSize`     | Size of Split in MB  | 16                       | Split size in MB
  `-debug`    | Debug mode  | 0                       | Debug printing verbosity (0=none, 1=some, 2=verbose)

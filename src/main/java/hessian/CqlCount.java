@@ -70,7 +70,7 @@ import com.datastax.driver.core.exceptions.OperationTimedOutException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
 public class CqlCount {
-    private String version = "0.0.5";
+    private String version = "0.0.6";
     private String host = null;
     private int port = 9042;
     private String username = null;
