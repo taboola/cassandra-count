@@ -86,7 +86,7 @@ public class CqlCount {
     private String maxToken = "9223372036854775807";
     private String beginTokenString = null;
     private String endTokenString = null;
-    private int numSplits = -1;
+    private int numSplits = 0;
     private int numFutures = 100;
     private String keyspaceName = null;
     private String tableName = null;
@@ -112,7 +112,7 @@ public class CqlCount {
 	usage.append("  -beginToken <tokenString>      Begin token [none]\n");
 	usage.append("  -endToken <tokenString>        End token [none]\n");
 	usage.append("  -numFutures <numfutures>       Number of futures [100]\n");
-	usage.append("  -numSplits <numsplits>         Number of total splits [none]\n");
+	usage.append("  -numSplits <numsplits>         Number of total splits (0 for <number of tokens>, -1 for size-related generated splits) [number of tokens]\n");
 	usage.append("  -splitSize <splitSize>         Split size in MBs [2]\n");
 	usage.append("  -debug <0|1|2>                 Print debug messages [0]\n");
 	return usage.toString();
@@ -355,6 +355,9 @@ public class CqlCount {
 	else {
 	    Set<TokenRange> inranges = m.getTokenRanges();
 	    Set<TokenRange> ranges = new HashSet<TokenRange>();
+	    if (0 == numSplits) {
+		numSplits = cluster.getMetadata().getTokenRanges().size();
+	    }
 	    if (numSplits > 0) {
 		debugPrint("Splitting into " + numSplits + " splits", true, 2);
 		for (TokenRange tr : inranges) {
