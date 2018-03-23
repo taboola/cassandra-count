@@ -16,11 +16,11 @@ is addressing - I highly recommend Spark+Cassandra.
 
 ### Downloading
 This utility has already been built, and is available at
-https://github.com/brianmhess/cassandra-count/releases/download/v0.0.5/cassandra-count
+https://github.com/brianmhess/cassandra-count/releases/download/v0.0.6/cassandra-count
 
 Get it with wget:
 ```
-wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.5/cassandra-count
+wget https://github.com/brianmhess/cassandra-count/releases/download/v0.0.6/cassandra-count
 ```
 
 You can change the permissions on that file to executable and execute it
