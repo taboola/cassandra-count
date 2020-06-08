@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -54,7 +55,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 
@@ -87,8 +87,9 @@ public class CqlCount {
     private List<Token> beginTokens;
     private List<Token> endTokens;
 
+    // -host recob101.us.taboolasyndication.com -keyspace trc -table recommendationsv3 -readTimeout 1200000 -connectTimeout 500000 -debug 2 -numSplits 143370
     public static void main(String[] args)
-            throws IOException, InterruptedException,
+            throws IOException,
             KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException,
             CertificateException, KeyManagementException {
         CqlCount cc = new CqlCount();
@@ -337,13 +338,13 @@ public class CqlCount {
     }
 
     private void determineSplits() {
-        beginTokens = new ArrayList<Token>();
-        endTokens = new ArrayList<Token>();
+        beginTokens = new ArrayList<>();
+        endTokens = new ArrayList<>();
         Metadata m = cluster.getMetadata();
         if (null != beginTokenString) {
-            BigInteger begin = null;
-            BigInteger end = null;
-            BigInteger delta = null;
+            BigInteger begin;
+            BigInteger end;
+            BigInteger delta;
             begin = new BigInteger(beginTokenString);
             end = new BigInteger(endTokenString);
             delta = end.subtract(begin).divide(new BigInteger(String.valueOf(numSplits)));
@@ -359,9 +360,10 @@ public class CqlCount {
 
         } else {
             Set<TokenRange> inranges = m.getTokenRanges();
-            Set<TokenRange> ranges = new HashSet<TokenRange>();
+            Set<TokenRange> ranges = new HashSet<>();
             if (0 == numSplits) {
-                numSplits = cluster.getMetadata().getTokenRanges().size();
+                debugPrint("Getting token ranges as number of splits", true, 2);
+                numSplits = m.getTokenRanges().size();
             }
             if (numSplits > 0) {
                 debugPrint("Splitting into " + numSplits + " splits", true, 2);
@@ -469,12 +471,13 @@ public class CqlCount {
 
         // Prepare Statement
         PreparedStatement ps = prepareStatement();
-        List<ResultSetFuture> flist = new ArrayList<ResultSetFuture>();
+        List<ResultSetFuture> flist = new ArrayList<>();
         int fsize = 0;
         long count = 0;
         Row r;
 
         // Loop over splits
+        debugPrint("Running over " + beginTokens.size() + " tokens", true, 2);
         for (int i = 0; i < beginTokens.size(); i++) {
             //   Bind Split
             debugPrint("Executing: " + beginTokens.get(i) + "  " + endTokens.get(i), true, 2);
@@ -485,11 +488,13 @@ public class CqlCount {
             flist.add(rsf);
             fsize++;
             if (fsize >= numFutures) {
-                for (ResultSetFuture resultSetFuture : flist) {
+                debugPrint("Waiting for " + flist.size() + " futures after token #" + i + "/" + beginTokens.size(), true, 2);
+                for (ResultSetFuture rs : flist) {
                     try {
-                        r = resultSetFuture.getUninterruptibly().one();
-                    } catch (NoHostAvailableException rte) {
-                        System.err.println("An OperationTimedOutException occurred. Try increasing -numSplits or reducing -splitSize");
+                        r = rs.getUninterruptibly(readTimeout, TimeUnit.MILLISECONDS).one();
+                    } catch (Exception rte) {
+                        System.err.println("An " + rte.getClass().getSimpleName() + " occurred. Try increasing -numSplits or reducing -splitSize. " + rte.getMessage());
+                        rte.printStackTrace();
                         cleanup();
                         return false;
                     }
@@ -500,11 +505,13 @@ public class CqlCount {
             }
         }
         if (fsize > 0) {
-            for (ResultSetFuture resultSetFuture : flist) {
+            debugPrint("Waiting for " + flist.size() + " left futures", true, 2);
+            for (ResultSetFuture rs : flist) {
                 try {
-                    r = resultSetFuture.getUninterruptibly().one();
-                } catch (NoHostAvailableException rte) {
-                    System.err.println("An OperationTimedOutException occurred. Try increasing -numSplits or reducing -splitSize");
+                    r = rs.getUninterruptibly(readTimeout, TimeUnit.MILLISECONDS).one();
+                } catch (Exception rte) {
+                    System.err.println("An " + rte.getClass().getSimpleName() + " occurred. Try increasing -numSplits or reducing -splitSize. " + rte.getMessage());
+                    rte.printStackTrace();
                     cleanup();
                     return false;
                 }
@@ -516,7 +523,7 @@ public class CqlCount {
 
         System.out.println(keyspaceName + "." + tableName + ": " + count);
 
-        //cleanup();
+        cleanup();
         return true;
     }
 }
