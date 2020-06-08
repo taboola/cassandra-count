@@ -32,7 +32,7 @@ dependencies {
 task uberloader(type: Jar) {
     dependsOn << 'compileJava'
     from "src/main/resources/logback.xml"
-    from files(sourceSets.main.output.classesDir)
+    from files(sourceSets.main.output.classesDirs)
     from(configurations.runtime.asFileTree.files.collect { zipTree(it) }) {
         exclude "META-INF/**"
     }
