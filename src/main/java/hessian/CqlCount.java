@@ -378,6 +378,7 @@ public class CqlCount {
                     }
                 }
                 int numRanges = ranges.size();
+                numSplits = Math.max(numRanges * 10, numSplits);
                 int numSplitsPerRange = numSplits / numRanges;
                 debugPrint("Splitting " + numRanges + " ranges each into " + numSplitsPerRange + " splits", true, 2);
                 if (numSplitsPerRange < 1)
